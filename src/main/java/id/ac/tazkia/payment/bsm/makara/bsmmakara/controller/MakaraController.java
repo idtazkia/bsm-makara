@@ -103,6 +103,7 @@ public class MakaraController {
 
         MakaraResponse response = MakaraResponse.builder()
                 .responseCode(ResponseCodeConstants.SUCCESS)
+                .responseMessage("OK")
                 .nama(va.getName())
                 .nomorInvoice(va.getInvoiceNumber())
                 .nomorPembayaran(va.getAccountNumber())
