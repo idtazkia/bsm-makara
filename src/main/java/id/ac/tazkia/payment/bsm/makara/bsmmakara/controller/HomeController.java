@@ -17,7 +17,7 @@ public class HomeController {
         Map<String, String> info = new LinkedHashMap<>();
         info.put("name", "BSM Makara Gateway");
         info.put("version", gitProperties.getShortCommitId());
-        info.put("release", gitProperties.get("git.closest.tag.name"));
+        info.put("release", gitProperties.get("closest.tag.name"));
         info.put("branch", gitProperties.getBranch());
         info.put("lastUpdate", gitProperties.getCommitTime().toString());
         return info;
