@@ -1,12 +1,13 @@
 package id.ac.tazkia.payment.bsm.makara.bsmmakara.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
-@Data
+@Data @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class MakaraRequest {
     public static final String ACTION_INQUIRY = "inquiry";
     public static final String ACTION_PAYMENT = "payment";
