@@ -8,9 +8,11 @@ import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.VirtualAccountDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraRequest;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraResponse;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.*;
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.utils.ChecksumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import javax.xml.bind.DatatypeConverter;
 import java.math.BigDecimal;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -30,6 +34,8 @@ import java.util.UUID;
 public class MakaraController {
     private static final Logger LOGGER = LoggerFactory.getLogger(MakaraController.class);
 
+    @Value("${shared.key}") private String sharedKey;
+
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VirtualAccountDao virtualAccountDao;
     @Autowired private PaymentDao paymentDao;
@@ -39,6 +45,16 @@ public class MakaraController {
     public MakaraResponse handleRequest(@RequestBody @Valid MakaraRequest request) {
         try {
             LOGGER.debug("Request : {}", objectMapper.writeValueAsString(request));
+
+            String checksum = request.getChecksum();
+            if (!StringUtils.hasText(checksum)) {
+                return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "Checksum harus diisi");
+            }
+
+            String verifikasiChecksum = ChecksumUtils.calculateChecksum(request.getNomorPembayaran(), sharedKey, request.getTanggalTransaksi());
+            if (!verifikasiChecksum.equalsIgnoreCase(checksum)) {
+                return errorResponse(ResponseCodeConstants.INVALID_CHECKSUM, "Invalid Checksum");
+            }
 
             MakaraResponse response = errorResponse(ResponseCodeConstants.INVALID_ACTION, "Action " + request.getAction() + " tidak dikenal");
 
@@ -116,6 +132,7 @@ public class MakaraController {
                 .kodeChannel(request.getKodeChannel())
                 .kodeTerminal(request.getKodeTerminal())
                 .idTransaksi(request.getIdTransaksi())
+                .tanggalTransaksi(request.getTanggalTransaksi())
                 .responseCode(ResponseCodeConstants.SUCCESS)
                 .responseMessage("OK")
                 .nomorInvoice(va.getInvoiceNumber())
@@ -189,6 +206,7 @@ public class MakaraController {
                 .kodeChannel(request.getKodeChannel())
                 .kodeTerminal(request.getKodeTerminal())
                 .idTransaksi(request.getIdTransaksi())
+                .tanggalTransaksi(request.getTanggalTransaksi())
                 .responseCode(ResponseCodeConstants.SUCCESS)
                 .responseMessage("OK")
                 .nomorInvoice(va.getInvoiceNumber())
@@ -235,6 +253,7 @@ public class MakaraController {
                 .kodeChannel(request.getKodeChannel())
                 .kodeTerminal(request.getKodeTerminal())
                 .idTransaksi(request.getIdTransaksi())
+                .tanggalTransaksi(request.getTanggalTransaksi())
                 .responseCode(ResponseCodeConstants.SUCCESS)
                 .responseMessage("OK")
                 .nama(va.getName())

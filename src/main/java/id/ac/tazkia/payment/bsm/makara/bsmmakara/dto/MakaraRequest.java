@@ -16,6 +16,8 @@ public class MakaraRequest {
     @NotNull @NotEmpty
     private String action;
     @NotNull @NotEmpty
+    private String checksum;
+    @NotNull @NotEmpty
     private String nomorPembayaran;
     private String nomorInvoice;
     private String kodeChannel;
@@ -24,6 +26,7 @@ public class MakaraRequest {
     @NotNull @NotEmpty
     private String idTransaksi;
     private BigDecimal nilai;
+    @NotNull @NotEmpty
     private String tanggalTransaksi;
     private String tanggalTransaksiAsal;
     private String nomorJurnalPembukuan;
