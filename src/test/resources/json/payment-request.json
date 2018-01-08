@@ -1,0 +1,34 @@
+// Normal Account
+{
+  "action" : "payment",
+  "nomorPembayaran" : "765432006",
+  "nilai" : "1000006.00",
+  "kodeTerminal" : "001",
+  "kodeBank" : "002",
+  "kodeChannel" : "ATM",
+  "idTransaksi" : "123"
+}
+
+,// Name with quotes
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432001"
+}
+
+,// Name with double quotes
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432003"
+}
+
+,// Expired account
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432004"
+}
+
+,// Inactive account
+{
+"action" : "inquiry",
+"nomorPembayaran" : "765432005"
+}
