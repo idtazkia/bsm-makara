@@ -108,6 +108,7 @@ public class MakaraController {
                 .nomorInvoice(va.getInvoiceNumber())
                 .nomorPembayaran(va.getAccountNumber())
                 .nilai(va.getAmount())
+                .keterangan(va.getDescription())
                 .build();
 
         return response;
