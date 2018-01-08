@@ -21,10 +21,10 @@ maven-build:
   services:
     - postgres:latest
   variables:
-    POSTGRES_DB : $CI_PROJECT_NAME
-    POSTGRES_USER: $CI_PROJECT_NAME
-    POSTGRES_PASSWORD: $CI_PROJECT_NAME
-    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres/$CI_PROJECT_NAME
+    POSTGRES_DB : bsmmakaradb
+    POSTGRES_USER: ittazkia
+    POSTGRES_PASSWORD: ittazkia
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres/bsmmakaradb
   script:
     - mvn clean package -B
   artifacts:
