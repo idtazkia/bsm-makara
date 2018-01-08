@@ -13,7 +13,8 @@ public class MakaraResponse {
     private String action;
     private String nomorPembayaran;
     private String nomorInvoice;
-    private String nomorReferensi;
+    private String referensiPembayaran;
+    private String referensiReversal;
     private BigDecimal nilai;
     private String nama;
     private String keterangan;

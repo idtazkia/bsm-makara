@@ -24,6 +24,9 @@ public class PaymentReversal {
     @NotNull @NotEmpty
     private String transactionReference;
 
+    @NotNull @NotEmpty
+    private String clientReference;
+
     @NotNull
     private LocalDateTime transactionTime;
 }

@@ -3,13 +3,11 @@ package id.ac.tazkia.payment.bsm.makara.bsmmakara.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.constants.ResponseCodeConstants;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.PaymentDao;
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.PaymentReversalDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.VirtualAccountDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraRequest;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraResponse;
-import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.AccountStatus;
-import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.Payment;
-import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.PaymentStatus;
-import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.VirtualAccount;
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +33,7 @@ public class MakaraController {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VirtualAccountDao virtualAccountDao;
     @Autowired private PaymentDao paymentDao;
+    @Autowired private PaymentReversalDao paymentReversalDao;
 
     @PostMapping("/api")
     public MakaraResponse handleRequest(@RequestBody @Valid MakaraRequest request) {
@@ -64,9 +63,68 @@ public class MakaraController {
     }
 
     private MakaraResponse handleReversal(@Valid MakaraRequest request) {
+        String nomorInvoice = request.getNomorInvoice();
+        if (!StringUtils.hasText(nomorInvoice)) {
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "Nomor invoice " + nomorInvoice + " harus diisi");
+        }
+
+        String nomorPembayaran = request.getNomorPembayaran();
+        if(!StringUtils.hasText(nomorPembayaran)){
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "nomorPembayaran harus diisi");
+        }
+
+        String idTransaksi = request.getIdTransaksi();
+        if(!StringUtils.hasText(idTransaksi)){
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "idTransaksi harus diisi");
+        }
+
+        VirtualAccount va = virtualAccountDao.findByInvoiceNumberAndAccountStatus(nomorInvoice, AccountStatus.PAID);
+        if (va == null) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor invoice " + nomorInvoice + " belum dibayar");
+        }
+
+        List<Payment> paymentList = paymentDao.findByClientReferenceAndVirtualAccount(idTransaksi, va);
+        if (paymentList.isEmpty()) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " tidak ditemukan");
+        }
+
+        if (paymentList.size() > 1) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " duplikat. Hubungi admin");
+        }
+
+        Payment payment = paymentList.get(0);
+
+        if (PaymentStatus.REVERSED.equals(payment.getPaymentStatus())) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " sudah dibatalkan");
+        }
+
+        payment.setPaymentStatus(PaymentStatus.REVERSED);
+        paymentDao.save(payment);
+
+        PaymentReversal paymentReversal = new PaymentReversal();
+        paymentReversal.setPayment(payment);
+        paymentReversal.setTransactionTime(LocalDateTime.now());
+        paymentReversal.setTransactionReference(UUID.randomUUID().toString());
+        paymentReversal.setClientReference(idTransaksi);
+        paymentReversalDao.save(paymentReversal);
+
+        va.setAccountStatus(AccountStatus.ACTIVE);
+        virtualAccountDao.save(va);
+
         MakaraResponse response = MakaraResponse.builder()
-                .responseCode(ResponseCodeConstants.INVALID_ACTION)
-                .responseMessage("Not implemented yet")
+                .kodeBank(request.getKodeBank())
+                .kodeChannel(request.getKodeChannel())
+                .kodeTerminal(request.getKodeTerminal())
+                .idTransaksi(request.getIdTransaksi())
+                .responseCode(ResponseCodeConstants.SUCCESS)
+                .responseMessage("OK")
+                .nomorInvoice(va.getInvoiceNumber())
+                .nomorPembayaran(va.getAccountNumber())
+                .nama(va.getName())
+                .keterangan(va.getDescription())
+                .referensiPembayaran(payment.getTransactionReference())
+                .referensiReversal(paymentReversal.getTransactionReference())
+                .tanggalTransaksi(paymentReversal.getTransactionTime().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
 
         return response;
@@ -76,7 +134,7 @@ public class MakaraController {
         String nomorPembayaran = request.getNomorPembayaran();
 
         if(!StringUtils.hasText(nomorPembayaran)){
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "nomorPembayaran harus diisi");
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "nomorPembayaran harus diisi");
         }
 
         List<VirtualAccount> virtualAccounts = virtualAccountDao.findByAccountNumberAndAccountStatus(nomorPembayaran, AccountStatus.ACTIVE);
@@ -104,12 +162,23 @@ public class MakaraController {
             return errorResponse(ResponseCodeConstants.INVALID_AMOUNT, "Nilai pembayaran ["+amount+"] tidak sama dengan nilai tagihan ["+va.getAmount()+"]");
         }
 
+        String idTransaksi = request.getIdTransaksi();
+        if(!StringUtils.hasText(idTransaksi)){
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "idTransaksi harus diisi");
+        }
+
+        List<Payment> paymentList = paymentDao.findByClientReferenceAndVirtualAccount(idTransaksi, va);
+        if (!paymentList.isEmpty()) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "idTransaksi " + idTransaksi + " sudah pernah digunakan untuk nomorPembayaran "+nomorPembayaran);
+        }
+
         Payment payment = new Payment();
         payment.setVirtualAccount(va);
         payment.setAmount(amount);
         payment.setPaymentStatus(PaymentStatus.ACCEPTED);
         payment.setTransactionTime(LocalDateTime.now());
         payment.setTransactionReference(UUID.randomUUID().toString());
+        payment.setClientReference(request.getIdTransaksi());
         paymentDao.save(payment);
 
         va.setAccountStatus(AccountStatus.PAID);
@@ -126,7 +195,7 @@ public class MakaraController {
                 .nomorPembayaran(va.getAccountNumber())
                 .nama(va.getName())
                 .keterangan(va.getDescription())
-                .nomorReferensi(payment.getTransactionReference())
+                .referensiPembayaran(payment.getTransactionReference())
                 .tanggalTransaksi(payment.getTransactionTime().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
 
@@ -138,7 +207,7 @@ public class MakaraController {
         String nomorPembayaran = request.getNomorPembayaran();
 
         if(!StringUtils.hasText(nomorPembayaran)){
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "nomorPembayaran harus diisi");
+            return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "nomorPembayaran harus diisi");
         }
 
         List<VirtualAccount> virtualAccounts = virtualAccountDao.findByAccountNumberAndAccountStatus(nomorPembayaran, AccountStatus.ACTIVE);

@@ -21,6 +21,7 @@ public class MakaraRequest {
     private String kodeChannel;
     private String kodeBank;
     private String kodeTerminal;
+    @NotNull @NotEmpty
     private String idTransaksi;
     private BigDecimal nilai;
     private String tanggalTransaksi;

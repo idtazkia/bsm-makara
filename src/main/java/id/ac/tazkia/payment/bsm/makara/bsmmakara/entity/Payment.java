@@ -30,6 +30,9 @@ public class Payment {
     private BigDecimal amount;
 
     @NotNull @NotEmpty
+    private String clientReference;
+
+    @NotNull @NotEmpty
     private String transactionReference;
 
     @NotNull

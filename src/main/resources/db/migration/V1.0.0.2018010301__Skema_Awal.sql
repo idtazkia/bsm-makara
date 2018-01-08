@@ -11,7 +11,8 @@ CREATE TABLE virtual_account (
   create_time    TIMESTAMP      NOT NULL,
   expire_date    DATE           NOT NULL,
   account_status VARCHAR(255)   NOT NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  UNIQUE (invoice_number)
 );
 
 CREATE TABLE payment (
@@ -20,9 +21,11 @@ CREATE TABLE payment (
   amount                NUMERIC(19, 2) NOT NULL,
   transaction_time      TIMESTAMP      NOT NULL,
   transaction_reference VARCHAR(36)    NOT NULL,
+  client_reference      VARCHAR(36)    NOT NULL,
   payment_status        VARCHAR(255)   NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (id_virtual_account) REFERENCES virtual_account (id)
+  FOREIGN KEY (id_virtual_account) REFERENCES virtual_account (id),
+  UNIQUE (id_virtual_account,client_reference)
 );
 
 CREATE TABLE payment_reversal (
@@ -30,8 +33,10 @@ CREATE TABLE payment_reversal (
   id_payment            VARCHAR(36)  NOT NULL,
   transaction_time      TIMESTAMP    NOT NULL,
   transaction_reference VARCHAR(255) NOT NULL,
+  client_reference      VARCHAR(36)  NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (id_payment) REFERENCES payment (id)
+  FOREIGN KEY (id_payment) REFERENCES payment (id),
+  UNIQUE (id_payment)
 );
 
 CREATE TABLE inquiry_request (
