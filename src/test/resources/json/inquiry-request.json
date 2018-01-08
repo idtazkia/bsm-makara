@@ -1,0 +1,29 @@
+// Normal Account
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432006"
+}
+
+,// Name with quotes
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432001"
+}
+
+,// Name with double quotes
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432003"
+}
+
+,// Expired account
+{
+  "action" : "inquiry",
+  "nomorPembayaran" : "765432004"
+}
+
+,// Inactive account
+{
+"action" : "inquiry",
+"nomorPembayaran" : "765432005"
+}

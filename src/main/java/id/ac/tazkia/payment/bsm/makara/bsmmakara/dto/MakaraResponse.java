@@ -1,10 +1,12 @@
 package id.ac.tazkia.payment.bsm.makara.bsmmakara.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
-@Data
+@Data @Builder @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class MakaraResponse {
     private String responseCode;
     private String responseMessage;
