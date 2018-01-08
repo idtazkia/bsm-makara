@@ -1,0 +1,11 @@
+[Unit]
+Description=BSM Makara Virtual Account Gateway
+After=syslog.target
+
+[Service]
+User=root
+ExecStart=/var/lib/bsm-makara/bsm-makara.jar
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
