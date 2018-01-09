@@ -1,29 +1,7 @@
-// Normal Account
 {
   "action" : "inquiry",
-  "nomorPembayaran" : "765432006"
-}
-
-,// Name with quotes
-{
-  "action" : "inquiry",
-  "nomorPembayaran" : "765432001"
-}
-
-,// Name with double quotes
-{
-  "action" : "inquiry",
-  "nomorPembayaran" : "765432003"
-}
-
-,// Expired account
-{
-  "action" : "inquiry",
-  "nomorPembayaran" : "765432004"
-}
-
-,// Inactive account
-{
-"action" : "inquiry",
-"nomorPembayaran" : "765432005"
+  "nomorPembayaran" : "765432002",
+  "idTransaksi" : "123",
+  "tanggalTransaksi" : "20180101085959",
+  "checksum" : "ED2E6EAEF6F239913DC7EE686352A71C4F822EDD"
 }

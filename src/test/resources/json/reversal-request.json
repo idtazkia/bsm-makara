@@ -1,7 +1,8 @@
 {
-  "action" : "payment",
+  "action" : "reversal",
   "nomorPembayaran" : "765432002",
-  "nilai" : "1000002",
+  "nomorInvoice" : "20180101002",
+  "nilai" : "1000001",
   "idTransaksi" : "333",
   "tanggalTransaksi" : "20180101085959",
   "checksum" : "ED2E6EAEF6F239913DC7EE686352A71C4F822EDD"
