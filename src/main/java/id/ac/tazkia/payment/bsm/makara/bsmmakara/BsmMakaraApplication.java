@@ -15,6 +15,8 @@ public class BsmMakaraApplication {
         loggingFilter.setIncludeQueryString(true);
         loggingFilter.setIncludePayload(true);
         loggingFilter.setIncludeHeaders(true);
+        loggingFilter.setMaxPayloadLength(1000000);
+        loggingFilter.setAfterMessagePrefix("REQUEST DATA : ");
         return loggingFilter;
     }
 
