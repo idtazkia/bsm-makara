@@ -21,9 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
-import javax.xml.bind.DatatypeConverter;
 import java.math.BigDecimal;
-import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -94,24 +92,34 @@ public class MakaraController {
             return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "idTransaksi harus diisi");
         }
 
-        VirtualAccount va = virtualAccountDao.findByInvoiceNumberAndAccountStatus(nomorInvoice, AccountStatus.PAID);
+        VirtualAccount va = virtualAccountDao.findByInvoiceNumberAndAccountStatusIn(nomorInvoice,
+                AccountStatus.PAID, AccountStatus.PAID_PARTIALLY);
         if (va == null) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor invoice " + nomorInvoice + " belum dibayar");
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT,
+                    "Nomor invoice " + nomorInvoice + " belum dibayar");
         }
 
         List<Payment> paymentList = paymentDao.findByClientReferenceAndVirtualAccount(idTransaksi, va);
         if (paymentList.isEmpty()) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " tidak ditemukan");
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT,
+                    "Pembayaran dengan idTransaksi " + idTransaksi + " tidak ditemukan");
         }
 
         if (paymentList.size() > 1) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " duplikat. Hubungi admin");
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT,
+                    "Pembayaran dengan idTransaksi " + idTransaksi + " duplikat. Hubungi admin");
         }
 
         Payment payment = paymentList.get(0);
 
         if (PaymentStatus.REVERSED.equals(payment.getPaymentStatus())) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Pembayaran dengan idTransaksi " + idTransaksi + " sudah dibatalkan");
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT,
+                    "Pembayaran dengan idTransaksi " + idTransaksi + " sudah dibatalkan");
+        }
+
+        if (payment.getAmount().compareTo(request.getNilai()) != 0) {
+            return errorResponse(ResponseCodeConstants.INVALID_AMOUNT,
+                    "Nilai pembayaran [" + payment.getAmount() + "] berbeda dengan nilai reversal [" + request.getNilai() +"]");
         }
 
         payment.setPaymentStatus(PaymentStatus.REVERSED);
@@ -124,7 +132,12 @@ public class MakaraController {
         paymentReversal.setClientReference(idTransaksi);
         paymentReversalDao.save(paymentReversal);
 
-        va.setAccountStatus(AccountStatus.ACTIVE);
+        va.setCumulativePayment(va.getCumulativePayment().subtract(payment.getAmount()));
+        if (va.getCumulativePayment().compareTo(BigDecimal.ZERO) > 0) {
+            va.setAccountStatus(AccountStatus.PAID_PARTIALLY);
+        } else {
+            va.setAccountStatus(AccountStatus.UNPAID);
+        }
         virtualAccountDao.save(va);
 
         MakaraResponse response = MakaraResponse.builder()
@@ -154,7 +167,9 @@ public class MakaraController {
             return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "nomorPembayaran harus diisi");
         }
 
-        List<VirtualAccount> virtualAccounts = virtualAccountDao.findByAccountNumberAndAccountStatus(nomorPembayaran, AccountStatus.ACTIVE);
+        List<VirtualAccount> virtualAccounts = virtualAccountDao
+                .findByAccountNumberAndAccountStatusIn(nomorPembayaran,
+                        AccountStatus.UNPAID, AccountStatus.PAID_PARTIALLY);
 
         if(virtualAccounts.isEmpty()){
             return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " tidak ditemukan");
@@ -166,8 +181,8 @@ public class MakaraController {
 
         VirtualAccount va = virtualAccounts.get(0);
 
-        if (!AccountStatus.ACTIVE.equals(va.getAccountStatus())) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " tidak aktif");
+        if (AccountStatus.PAID.equals(va.getAccountStatus())) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " sudah lunas");
         }
 
         if(LocalDateTime.now().isAfter(va.getExpireDate().atStartOfDay())){
@@ -175,8 +190,31 @@ public class MakaraController {
         }
 
         BigDecimal amount = request.getNilai();
-        if(va.getAmount().compareTo(amount) != 0){
-            return errorResponse(ResponseCodeConstants.INVALID_AMOUNT, "Nilai pembayaran ["+amount+"] tidak sama dengan nilai tagihan ["+va.getAmount()+"]");
+
+        if (AccountType.CLOSED.equals(va.getAccountType())) {
+            if(va.getAmount().compareTo(amount) != 0){
+                return errorResponse(ResponseCodeConstants.INVALID_AMOUNT, "Nilai pembayaran ["+amount+"] tidak sama dengan nilai tagihan ["+va.getAmount()+"]");
+            }
+        }
+
+        if (AccountType.INSTALLMENT.equals(va.getAccountType())) {
+            if (va.getAmount().compareTo(va.getCumulativePayment().add(amount)) < 0) {
+                return errorResponse(ResponseCodeConstants.INVALID_AMOUNT,
+                        "Nilai pembayaran ["
+                                +va.getCumulativePayment().add(amount)+
+                                "] melebihi nilai tagihan ["
+                                +va.getAmount()+"]");
+            }
+        }
+
+        if (AccountType.OPEN.equals(va.getAccountType())) {
+            if (amount.compareTo(va.getAmount()) < 0) {
+                return errorResponse(ResponseCodeConstants.INVALID_AMOUNT,
+                        "Nilai pembayaran ["
+                                + amount +
+                                "] kurang dari nilai minimum ["
+                                +va.getAmount()+"]");
+            }
         }
 
         String idTransaksi = request.getIdTransaksi();
@@ -198,7 +236,15 @@ public class MakaraController {
         payment.setClientReference(request.getIdTransaksi());
         paymentDao.save(payment);
 
-        va.setAccountStatus(AccountStatus.PAID);
+        va.setCumulativePayment(va.getCumulativePayment().add(amount));
+        va.setAccountStatus(AccountStatus.PAID_PARTIALLY);
+
+        if (!AccountType.OPEN.equals(va.getAccountType())) {
+            if (va.getCumulativePayment().compareTo(va.getAmount()) >= 0) {
+                va.setAccountStatus(AccountStatus.PAID);
+            }
+        }
+
         virtualAccountDao.save(va);
 
         MakaraResponse response = MakaraResponse.builder()
@@ -211,7 +257,10 @@ public class MakaraController {
                 .responseMessage("OK")
                 .nomorInvoice(va.getInvoiceNumber())
                 .nomorPembayaran(va.getAccountNumber())
+                .jenisAkun(va.getAccountType().name())
                 .nama(va.getName())
+                .nilai(va.getAmount())
+                .akumulasiPembayaran(va.getCumulativePayment())
                 .keterangan(va.getDescription())
                 .referensiPembayaran(payment.getTransactionReference())
                 .tanggalTransaksi(payment.getTransactionTime().format(DateTimeFormatter.ISO_DATE_TIME))
@@ -228,7 +277,8 @@ public class MakaraController {
             return errorResponse(ResponseCodeConstants.INVALID_REQUEST_FORMAT, "nomorPembayaran harus diisi");
         }
 
-        List<VirtualAccount> virtualAccounts = virtualAccountDao.findByAccountNumberAndAccountStatus(nomorPembayaran, AccountStatus.ACTIVE);
+        List<VirtualAccount> virtualAccounts = virtualAccountDao.findByAccountNumberAndAccountStatusIn(nomorPembayaran,
+                AccountStatus.UNPAID, AccountStatus.PAID_PARTIALLY);
 
         if(virtualAccounts.isEmpty()){
             return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " tidak ditemukan");
@@ -240,8 +290,8 @@ public class MakaraController {
 
         VirtualAccount va = virtualAccounts.get(0);
 
-        if (!AccountStatus.ACTIVE.equals(va.getAccountStatus())) {
-            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " tidak aktif");
+        if (AccountStatus.PAID.equals(va.getAccountStatus())) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT, "Nomor Pembayaran " + nomorPembayaran + " sudah lunas");
         }
 
         if(LocalDateTime.now().isAfter(va.getExpireDate().atStartOfDay())){
@@ -259,7 +309,9 @@ public class MakaraController {
                 .nama(va.getName())
                 .nomorInvoice(va.getInvoiceNumber())
                 .nomorPembayaran(va.getAccountNumber())
+                .jenisAkun(va.getAccountType().name())
                 .nilai(va.getAmount())
+                .akumulasiPembayaran(va.getCumulativePayment())
                 .keterangan(va.getDescription())
                 .build();
 

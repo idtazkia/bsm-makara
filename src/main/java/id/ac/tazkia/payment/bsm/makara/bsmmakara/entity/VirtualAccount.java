@@ -21,7 +21,7 @@ public class VirtualAccount {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+    private AccountStatus accountStatus = AccountStatus.UNPAID;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -47,6 +47,9 @@ public class VirtualAccount {
 
     @NotNull @Min(0)
     private BigDecimal amount;
+
+    @NotNull @Min(0)
+    private BigDecimal cumulativePayment = BigDecimal.ZERO;
 
     @NotNull
     private LocalDateTime createTime;

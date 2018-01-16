@@ -7,6 +7,6 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 import java.util.List;
 
 public interface VirtualAccountDao extends PagingAndSortingRepository<VirtualAccount, String>{
-    List<VirtualAccount> findByAccountNumberAndAccountStatus(String accountNumber, AccountStatus accountStatus);
-    VirtualAccount findByInvoiceNumberAndAccountStatus(String invoiceNumber, AccountStatus accountStatus);
+    List<VirtualAccount> findByAccountNumberAndAccountStatusIn(String accountNumber, AccountStatus... accountStatus);
+    VirtualAccount findByInvoiceNumberAndAccountStatusIn(String invoiceNumber, AccountStatus... accountStatus);
 }
