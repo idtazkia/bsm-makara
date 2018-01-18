@@ -16,7 +16,8 @@ public class MakaraResponse {
     private String jenisAkun;
     private String referensiPembayaran;
     private String referensiReversal;
-    private BigDecimal nilai;
+    private BigDecimal tagihanTotal;
+    private BigDecimal tagihanEfektif;
     private BigDecimal akumulasiPembayaran;
     private String nama;
     private String keterangan;

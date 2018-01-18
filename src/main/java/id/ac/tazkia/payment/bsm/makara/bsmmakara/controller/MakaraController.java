@@ -259,12 +259,19 @@ public class MakaraController {
                 .nomorPembayaran(va.getAccountNumber())
                 .jenisAkun(va.getAccountType().name())
                 .nama(va.getName())
-                .nilai(va.getAmount())
+                .tagihanTotal(va.getAmount())
+                .tagihanEfektif(va.getAmount().subtract(va.getCumulativePayment()))
                 .akumulasiPembayaran(va.getCumulativePayment())
                 .keterangan(va.getDescription())
                 .referensiPembayaran(payment.getTransactionReference())
                 .tanggalTransaksi(payment.getTransactionTime().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
+
+        // OPEN payment tidak perlu menampilkan akumulasi pembayaran dan sisa tagihan
+        if (AccountType.OPEN.equals(va.getAccountType())) {
+            response.setAkumulasiPembayaran(null);
+            response.setTagihanEfektif(response.getTagihanTotal());
+        }
 
         return response;
     }
@@ -310,10 +317,17 @@ public class MakaraController {
                 .nomorInvoice(va.getInvoiceNumber())
                 .nomorPembayaran(va.getAccountNumber())
                 .jenisAkun(va.getAccountType().name())
-                .nilai(va.getAmount())
+                .tagihanTotal(va.getAmount())
+                .tagihanEfektif(va.getAmount().subtract(va.getCumulativePayment()))
                 .akumulasiPembayaran(va.getCumulativePayment())
                 .keterangan(va.getDescription())
                 .build();
+
+        // OPEN payment tidak perlu menampilkan akumulasi pembayaran dan sisa tagihan
+        if (AccountType.OPEN.equals(va.getAccountType())) {
+            response.setAkumulasiPembayaran(null);
+            response.setTagihanEfektif(response.getTagihanTotal());
+        }
 
         return response;
     }
