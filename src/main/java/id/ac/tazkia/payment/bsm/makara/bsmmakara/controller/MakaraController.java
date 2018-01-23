@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -34,6 +35,7 @@ public class MakaraController {
     private static final Logger LOGGER = LoggerFactory.getLogger(MakaraController.class);
 
     @Value("${shared.key}") private String sharedKey;
+    @Value("${reversal.time-limit}") private Integer reversalTimeLimit;
 
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VirtualAccountDao virtualAccountDao;
@@ -122,6 +124,11 @@ public class MakaraController {
         if (payment.getAmount().compareTo(request.getNilai()) != 0) {
             return errorResponse(ResponseCodeConstants.INVALID_AMOUNT,
                     "Nilai pembayaran [" + payment.getAmount() + "] berbeda dengan nilai reversal [" + request.getNilai() +"]");
+        }
+
+        if (LocalDateTime.now().isAfter(payment.getTransactionTime().plusMinutes(reversalTimeLimit))) {
+            return errorResponse(ResponseCodeConstants.INVALID_ACCOUNT,
+                    "Pembayaran dengan idTransaksi " + idTransaksi + " sudah melewati batas waktu reversal");
         }
 
         payment.setPaymentStatus(PaymentStatus.REVERSED);
