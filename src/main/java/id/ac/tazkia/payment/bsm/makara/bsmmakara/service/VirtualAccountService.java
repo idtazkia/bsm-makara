@@ -24,18 +24,25 @@ public class VirtualAccountService {
     @Autowired private VirtualAccountDao virtualAccountDao;
     @Autowired private KafkaSenderService kafkaSenderService;
 
-    public void createVirtualAccount(VirtualAccountRequest vaRequest) {
+    public void createVirtualAccount(VirtualAccountRequest request) {
         try {
             VirtualAccount va = new VirtualAccount();
             va.setCreateTime(LocalDateTime.now());
-            BeanUtils.copyProperties(vaRequest, va);
+            BeanUtils.copyProperties(request, va);
+            if (!virtualAccountDao.findByAccountNumberAndAccountStatusIn(request.getAccountNumber(), AccountStatus.UNPAID, AccountStatus.PAID_PARTIALLY).isEmpty()) {
+                LOGGER.warn("VA dengan nomor {} sudah ada",
+                        request.getAccountNumber());
+                request.setRequestStatus(RequestStatus.ERROR);
+                kafkaSenderService.sendVaResponse(request);
+                return;
+            }
             virtualAccountDao.save(va);
-            vaRequest.setRequestStatus(RequestStatus.SUCCESS);
-            kafkaSenderService.sendVaResponse(vaRequest);
+            request.setRequestStatus(RequestStatus.SUCCESS);
+            kafkaSenderService.sendVaResponse(request);
         } catch (Exception err) {
             LOGGER.warn(err.getMessage(), err);
-            vaRequest.setRequestStatus(RequestStatus.ERROR);
-            kafkaSenderService.sendVaResponse(vaRequest);
+            request.setRequestStatus(RequestStatus.ERROR);
+            kafkaSenderService.sendVaResponse(request);
         }
     }
 
@@ -94,13 +101,17 @@ public class VirtualAccountService {
 
         try {
             VirtualAccount va = existing.iterator().next();
-            BeanUtils.copyProperties(request, va);
+            va.setPhone(request.getPhone());
+            va.setName(request.getName());
+            va.setExpireDate(request.getExpireDate());
+            va.setEmail(request.getEmail());
+            va.setDescription(request.getDescription());
+            va.setAmount(request.getAmount());
 
             // kalau tanggal expire yang baru sudah lewat, langsung nonaktifkan
             if (va.getExpireDate().isBefore(LocalDate.now())) {
                 va.setAccountStatus(AccountStatus.INACTIVE);
             }
-
             virtualAccountDao.save(va);
             request.setRequestStatus(RequestStatus.SUCCESS);
             kafkaSenderService.sendVaResponse(request);
