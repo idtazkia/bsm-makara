@@ -25,6 +25,7 @@ public class KafkaSenderService {
     @Autowired private ObjectMapper objectMapper;
 
     @Value("${bsm.bank-id}") private String bankId;
+    @Value("${bsm.client-id}") private String bankClientId;
     @Value("${bsm.prefix}") private String bankAccountPrefix;
     @Value("${kafka.topic.va.response}") private String kafkaTopicResponse;
     @Value("${kafka.topic.va.payment}") private String kafkaTopicPayment;
@@ -63,6 +64,6 @@ public class KafkaSenderService {
     }
 
     private String accountToVaNumber(String accountNumber) {
-        return bankAccountPrefix + accountNumber;
+        return bankAccountPrefix + bankClientId + accountNumber;
     }
 }
