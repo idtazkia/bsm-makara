@@ -1,0 +1,3 @@
+[
+  {"bankId" : "bsm001", "invoiceNumber" : "01234567892","accountNumber" : "08123456","name" : "Endy Muhardin","description" : "Tagihan Test","email" : "endy@tazkia.ac.id","phone" : "081234567891","amount" : 100034.0,"expireDate" : "2016-04-21","accountType" : "INSTALLMENT","requestType" : "UPDATE"}
+]
