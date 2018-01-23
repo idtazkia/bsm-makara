@@ -17,7 +17,7 @@ public class BsmMakaraApplicationTests {
 	@Test
 	public void testCalculateChecksum() throws Exception {
 		String tanggalTransaksi = "20180101085959";
-		String nomorPembayaran = "765432006";
+		String nomorPembayaran = "08123456";
 		String verifikasiChecksum = ChecksumUtils.calculateChecksum(nomorPembayaran, sharedKey, tanggalTransaksi);
 		Assert.assertNotNull(verifikasiChecksum);
 		System.out.println("Checksum : "+verifikasiChecksum);

@@ -8,6 +8,7 @@ import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.VirtualAccountDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraRequest;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.MakaraResponse;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.*;
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.service.KafkaSenderService;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.utils.ChecksumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ public class MakaraController {
     @Autowired private VirtualAccountDao virtualAccountDao;
     @Autowired private PaymentDao paymentDao;
     @Autowired private PaymentReversalDao paymentReversalDao;
+    @Autowired private KafkaSenderService kafkaSenderService;
 
     @PostMapping("/api")
     public MakaraResponse handleRequest(@RequestBody @Valid MakaraRequest request) {
@@ -246,6 +248,7 @@ public class MakaraController {
         }
 
         virtualAccountDao.save(va);
+        kafkaSenderService.sendVaPayment(payment);
 
         MakaraResponse response = MakaraResponse.builder()
                 .kodeBank(request.getKodeBank())
