@@ -32,7 +32,8 @@ public class VirtualAccountService {
             if (!virtualAccountDao.findByAccountNumberAndAccountStatusIn(request.getAccountNumber(), AccountStatus.UNPAID, AccountStatus.PAID_PARTIALLY).isEmpty()) {
                 LOGGER.warn("VA dengan nomor {} sudah ada",
                         request.getAccountNumber());
-                request.setRequestStatus(RequestStatus.ERROR);
+                request.setAccountNumber(va.getAccountNumber());
+                request.setRequestStatus(RequestStatus.SUCCESS);
                 kafkaSenderService.sendVaResponse(request);
                 return;
             }
