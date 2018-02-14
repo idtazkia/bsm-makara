@@ -39,3 +39,12 @@ deploy-to-testing:
   script:
   - scp target/*.jar root@$SSH_HOSTNAME_TESTING:/var/lib/$CI_PROJECT_NAME/
   - ssh root@$SSH_HOSTNAME_TESTING /var/lib/$CI_PROJECT_NAME/deploy.sh $CI_PROJECT_NAME-$CI_COMMIT_TAG.jar
+
+deploy-to-production:
+  image: debian:latest
+  stage: deploy
+  only:
+    - /-RELEASE$/
+  script:
+  - scp target/*.jar root@$SSH_HOSTNAME_PRODUCTION:/var/lib/$CI_PROJECT_NAME/
+  - ssh root@$SSH_HOSTNAME_PRODUCTION /var/lib/$CI_PROJECT_NAME/deploy.sh $CI_PROJECT_NAME-$CI_COMMIT_TAG.jar
