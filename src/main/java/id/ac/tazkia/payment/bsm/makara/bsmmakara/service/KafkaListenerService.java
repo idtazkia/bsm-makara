@@ -39,6 +39,8 @@ public class KafkaListenerService {
                 virtualAccountService.deleteVirtualAccount(vaRequest);
             } else if(RequestType.UPDATE.equals(vaRequest.getRequestType())){
                 virtualAccountService.updateVirtualAccount(vaRequest);
+            } else if(RequestType.INQUIRY.equals(vaRequest.getRequestType())){
+                virtualAccountService.checkVirtualAccount(vaRequest);
             } else {
                 LOGGER.warn("Virtual Account Request Type {} belum dibuat", vaRequest.getRequestType());
             }

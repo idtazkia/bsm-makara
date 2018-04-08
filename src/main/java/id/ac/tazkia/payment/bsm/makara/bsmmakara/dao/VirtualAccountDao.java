@@ -9,4 +9,5 @@ import java.util.List;
 public interface VirtualAccountDao extends PagingAndSortingRepository<VirtualAccount, String>{
     List<VirtualAccount> findByAccountNumberAndAccountStatusIn(String accountNumber, AccountStatus... accountStatus);
     VirtualAccount findByInvoiceNumberAndAccountStatusIn(String invoiceNumber, AccountStatus... accountStatus);
+    VirtualAccount findByInvoiceNumber(String invoiceNumber);
 }

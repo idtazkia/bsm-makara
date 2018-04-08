@@ -1,9 +1,11 @@
 package id.ac.tazkia.payment.bsm.makara.bsmmakara.service;
 
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.PaymentDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dao.VirtualAccountDao;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.RequestStatus;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.dto.VirtualAccountRequest;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.AccountStatus;
+import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.Payment;
 import id.ac.tazkia.payment.bsm.makara.bsmmakara.entity.VirtualAccount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,7 @@ public class VirtualAccountService {
     private static final Logger LOGGER = LoggerFactory.getLogger(VirtualAccountService.class);
 
     @Autowired private VirtualAccountDao virtualAccountDao;
+    @Autowired private PaymentDao paymentDao;
     @Autowired private KafkaSenderService kafkaSenderService;
 
     public void createVirtualAccount(VirtualAccountRequest request) {
@@ -121,5 +124,24 @@ public class VirtualAccountService {
             request.setRequestStatus(RequestStatus.ERROR);
             kafkaSenderService.sendVaResponse(request);
         }
+    }
+
+    public void checkVirtualAccount(VirtualAccountRequest request) {
+        VirtualAccount vaInvoice = virtualAccountDao.findByInvoiceNumber(request.getInvoiceNumber());
+        if (vaInvoice == null) {
+            LOGGER.warn("VA dengan nomor invoice {} tidak ditemukan", request.getInvoiceNumber());
+            request.setRequestStatus(RequestStatus.ERROR);
+            kafkaSenderService.sendVaResponse(request);
+            return;
+        }
+
+        List<Payment> paymentList = paymentDao.findByVirtualAccount(vaInvoice);
+        LOGGER.info("Ada {} payment untuk invoice {}", paymentList.size(), vaInvoice.getInvoiceNumber());
+        for (Payment p : paymentList) {
+            kafkaSenderService.sendVaPayment(p);
+        }
+
+        request.setRequestStatus(RequestStatus.SUCCESS);
+        kafkaSenderService.sendVaResponse(request);
     }
 }
